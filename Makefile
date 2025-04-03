@@ -6,6 +6,7 @@ install_hooks:
 install_jupyter:
 	-uv add ipython
 	-uv add ipykernel
+	-uv add ipywidgets
 
 install_python_basics:
 	-uv add numpy
