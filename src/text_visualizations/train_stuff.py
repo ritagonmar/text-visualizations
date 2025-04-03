@@ -79,6 +79,11 @@ def train_loop(
     lr=2e-5,
     scale = 20.0,  # we multiply similarity score by this scale value, it is the inverse of the temperature
 ):
+    """
+    eval_test_data : Default=None,
+        If you want the training and the evaluation to happen in different splits of the data, you need to pass a test set. None when eval is on MTEB or no train/test split.
+    
+    """
     
     assert not eval_function == MTEBEval or (mteb_saving_path is not None and mteb_tasks is not None), "You forgot either the MTEB saving path or list of tasks for the MTEB evaluation."
     
@@ -154,7 +159,7 @@ def train_loop(
 
             # and now calculate the loss
             loss = loss_func(scores * scale, labels) 
-            losses[epoch, i_batch] = loss.item()
+            losses[epoch, i_batch] = loss.item()            # TODO: loss is now being saved twice, as a separate matrix and in the df
 
             # using loss, calculate gradients and then optimize
             loss.backward()
@@ -172,6 +177,9 @@ def train_loop(
                 ):  
                     # add batch number to the results
                     training_eval_results["batch"].append(i_batch+len(loader)*epoch)
+
+                    # add loss to the results
+                    training_eval_results["loss"].append(losses[epoch, i_batch])
 
                     # path with batch number for saving MTEB results
                     mteb_saving_name = Path(f"results_epoch_{epoch}_batch_{i_batch}")
@@ -199,6 +207,9 @@ def train_loop(
             # add epoch number to the results
             training_eval_results["epoch"].append(epoch)
 
+            # add epoch number to the results
+            training_eval_results["loss"].append(np.mean(losses[epoch]))
+
             # same code as above for the batches
             mteb_saving_name = Path(f"results_epoch_{epoch}")
 
@@ -216,7 +227,6 @@ def train_loop(
             )
             [training_eval_results[k].append(v) for k, v in eval_results.items()]
             
-
 
 
     if (eval_every_epochs != 0) | (eval_every_batches != 0):
