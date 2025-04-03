@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from tqdm.notebook import tqdm
 
-from text_visualizations.train_stuff_edited import mean_pool,sep_pool,cls_pool
+from text_visualizations.train_stuff import mean_pool,sep_pool,cls_pool
     
 
 @torch.no_grad()

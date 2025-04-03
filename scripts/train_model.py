@@ -10,10 +10,10 @@ from datetime import datetime
 import os
 
 from text_visualizations.config_helpers import *
-from text_visualizations.train_stuff_edited import fix_all_seeds
+from text_visualizations.train_stuff import fix_all_seeds
 from text_visualizations.data_stuff import MultOverlappingSentencesPairDataset
 from text_visualizations.models import ModelProjector, ModelProjectorWrapper
-from text_visualizations.train_stuff_edited import train_loop
+from text_visualizations.train_stuff import train_loop
 
 
 ### SETUP
