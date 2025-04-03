@@ -1,0 +1,25 @@
+model:
+  model_name : "SBERT"
+  model_path : "sentence-transformers/all-mpnet-base-v2" # backbone
+  pooler : "train_stuff.mean_pool" # str, see get_functions() in config_helpers.py
+  in_dim : 768
+  hidden_dims : 1536
+  output_dim : 2
+
+
+data_loader:
+  dataset : "ICLR" # TODO:
+  batch_size : 64
+  n_cons_sntcs : 2
+
+
+training:
+  eval_every_epochs :  True  #bool, {True, False} 
+  eval_every_batches : 0  # int, 0 would be like none
+  eval_function : "eval_functions.KNNEval"  # str, see get_functions() in config_helpers.py
+  eval_rep : None
+  dist_metric : "euclidean"
+  mteb_tasks : None
+  n_epochs : 10
+  lr : 2e-5
+  scale : 20.0 
