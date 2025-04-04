@@ -3,7 +3,7 @@ import pandas as pd
 import random
 import torch
 from transformers.optimization import get_linear_schedule_with_warmup
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from collections import defaultdict
 from pathlib import Path
 
@@ -79,9 +79,29 @@ def train_loop(
     lr=2e-5,
     scale = 20.0,  # we multiply similarity score by this scale value, it is the inverse of the temperature
 ):
-    """
-    eval_test_data : Default=None,
+    """Train loop to train a pytorch sentence embedding model.
+
+
+    Parameters
+    ----------
+    ...
+    eval_train_data : list, default=None
+        Data where the evaluation is run on (if knn or lin acc). In the ICLR case, it would be only the labeled papers.
+        If eval_test_data=None, then eval_train_data is split into train and test set to train the classifier.
+        If eval_test_data is passed, the full eval_train_data will be the train set of the classifier.
+
+    eval_train_labels : list, default=None
+        Labels corresponding to eval_train_data
+
+    eval_test_data : list, default=None
         If you want the training and the evaluation to happen in different splits of the data, you need to pass a test set. None when eval is on MTEB or no train/test split.
+
+    mteb_saving_path : str, default=None
+        Path where MTEB evaluation will create a directory to save its results.
+    ...
+
+    Returns
+    -------
     
     """
     
@@ -143,8 +163,10 @@ def train_loop(
             p = wrapped_model.get_outputs(input_ids = pos_ids, attention_mask=pos_mask)
             
             # get the mean pooled vectors  
-            a = pooler(a, anchor_mask)
-            p = pooler(p, pos_mask)
+            # print(a.shape)
+            # a = pooler(a, anchor_mask)
+            # p = pooler(p, pos_mask)
+            # TODO: I don't need a pooler in the training anymore --> DELETE
 
             # calculate the cosine similarities
             scores = torch.stack(
@@ -159,7 +181,7 @@ def train_loop(
 
             # and now calculate the loss
             loss = loss_func(scores * scale, labels) 
-            losses[epoch, i_batch] = loss.item()            # TODO: loss is now being saved twice, as a separate matrix and in the df
+            losses[epoch, i_batch] = loss.item()            # ENH: loss is now being saved twice, as a separate matrix and in the df
 
             # using loss, calculate gradients and then optimize
             loss.backward()
@@ -183,7 +205,7 @@ def train_loop(
 
                     # path with batch number for saving MTEB results
                     mteb_saving_name = Path(f"results_epoch_{epoch}_batch_{i_batch}")
-
+                    
                     eval_results = eval_function( # some of these are needed for knn eval and some others for mteb
                         wrapped_model = wrapped_model,
                         device = device,
@@ -200,7 +222,7 @@ def train_loop(
                     wrapped_model.model.train()
 
 
-
+    # 
         if eval_every_epochs != 0:
             print("eval_epoch", epoch)
             

@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "autoreload>=0.1.2",
+    "black>=25.1.0",
     "datasets>=3.4.1",
     "distro>=1.9.0",
     "fastparquet>=2024.11.0",

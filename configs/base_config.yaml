@@ -5,10 +5,11 @@ model:
   in_dim : 768
   hidden_dims : 1536
   output_dim : 2
+  freeze_backbone : True
 
 
 data_loader:
-  dataset : "ICLR" # TODO:
+  dataset : "ICLR" # ENH: not being used
   batch_size : 64
   n_cons_sntcs : 2
 
@@ -17,9 +18,9 @@ training:
   eval_every_epochs :  True  #bool, {True, False} 
   eval_every_batches : 0  # int, 0 would be like none
   eval_function : "eval_functions.KNNEval"  # str, see get_functions() in config_helpers.py
-  eval_rep : None
+  eval_rep : ~ #None
   dist_metric : "euclidean"
-  mteb_tasks : None
+  mteb_tasks : ~ #None
   n_epochs : 10
-  lr : 2e-5
+  lr : !!float 2e-5
   scale : 20.0 

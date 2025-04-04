@@ -7,6 +7,8 @@ from text_visualizations.metrics import knn_accuracy, linear_accuracy
 
 # TODO: make outputs of all functions be a dictionary like Nik said
 # TODO: docstrings and comments
+# ENH: make encode_dataset only output the rep of the chosen pooler and not all 3
+#       then adapt the code in eval_functions to match
 
 
 
@@ -16,11 +18,11 @@ def KNNEval(*, wrapped_model, device, dataset, labels, test_dataset = None, test
         # ENH: this code is inneficient since I have twice the same embeddings in memory.
         # encode dataset
         embedding_cls, embedding_sep, embedding_av = wrapped_model.encode_dataset(data = dataset, device = device)
-            
+
         embedding_rep_dict = {"cls" : (embedding_cls,),
                         "sep" : (embedding_sep,),
                         "av" : (embedding_av,),}
-        
+
         # eval code 
         eval_results = knn_accuracy(embedding_rep_dict[eval_rep][0], 
                     labels, 
