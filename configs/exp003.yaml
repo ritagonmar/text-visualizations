@@ -1,0 +1,10 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+
+data_loader:
+
+
+training:
+  n_epochs : 250
+  eval_every_epochs: 50

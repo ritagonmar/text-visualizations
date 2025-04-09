@@ -84,6 +84,7 @@ model = ModelProjector(
     output_dim=config["model"]["output_dim"],
     freeze_backbone=config["model"]["freeze_backbone"],
 )
+print("Hidden dimensions: ", config["model"]["hidden_dims"])
 
 # wrap model
 wrapped_model = ModelProjectorWrapper(model, tokenizer)
@@ -106,7 +107,7 @@ training_loader = torch.utils.data.DataLoader(
     shuffle=True,
     generator=gen,
 )
-
+print(f"Training for {config["training"]["n_epochs"]} epochs")
 ## train model
 # training
 losses, df_training = train_loop(
@@ -121,7 +122,7 @@ losses, df_training = train_loop(
     pooler=pooler,
     eval_rep=config["training"]["eval_rep"],
     dist_metric=config["training"]["dist_metric"],
-    mteb_saving_path=saving_path,
+    saving_path=saving_path,
     mteb_tasks=config["training"]["mteb_tasks"],
     n_epochs=config["training"]["n_epochs"],
     lr=config["training"]["lr"],
@@ -131,7 +132,9 @@ losses, df_training = train_loop(
 wrapped_model.model.save_model(saving_path / "trained_model.pt", include_pooler=True)
 
 # save 2D embeddings
-embeddings_2d = wrapped_model.encode_dataset(iclr.abstract.to_list(), device=device)
+_, _, embeddings_2d = wrapped_model.encode_dataset(
+    iclr.abstract.to_list(), device=device
+)
 np.save(saving_path / "embeddings_2d", embeddings_2d)
 
 
