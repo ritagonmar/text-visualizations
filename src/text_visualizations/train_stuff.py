@@ -1,3 +1,4 @@
+import zipfile
 import numpy as np
 import pandas as pd
 import random
@@ -73,8 +74,7 @@ def train_loop(
     eval_every_epochs=True,  # bool, {True, False}
     eval_every_batches=0,  # int, 0 would be like none
     eval_function=KNNEval,
-    pooler=mean_pool,
-    eval_rep=None,  # representation to evaluate, if None it is the same used by pooler
+    eval_rep="av",  # representation to evaluate, if None it is the same used by pooler
     dist_metric="euclidean",
     saving_path=None,
     mteb_tasks=None,
@@ -111,9 +111,6 @@ def train_loop(
     assert not eval_function == MTEBEval or (
         saving_path is not None and mteb_tasks is not None
     ), "You forgot either the MTEB saving path or list of tasks for the MTEB evaluation."
-
-    if eval_rep is None:
-        eval_rep = pooler.sent_rep
 
     if (
         eval_every_batches != 0
@@ -174,12 +171,6 @@ def train_loop(
             )
             p = wrapped_model.get_outputs(input_ids=pos_ids, attention_mask=pos_mask)
 
-            # get the mean pooled vectors
-            # print(a.shape)
-            # a = pooler(a, anchor_mask)
-            # p = pooler(p, pos_mask)
-            # TODO: I don't need a pooler in the training anymore --> DELETE
-
             # calculate the cosine similarities
             scores = torch.stack(
                 [cos_sim(a_i.reshape(1, a_i.shape[0]), p) for a_i in a]
@@ -193,9 +184,7 @@ def train_loop(
 
             # and now calculate the loss
             loss = loss_func(scores * scale, labels)
-            losses[epoch, i_batch] = (
-                loss.item()
-            )  # ENH: loss is now being saved twice, as a separate matrix and in the df
+            losses[epoch, i_batch] = loss.item()
 
             # using loss, calculate gradients and then optimize
             loss.backward()
@@ -236,19 +225,17 @@ def train_loop(
                     ]
                     wrapped_model.model.train()
 
-                    # Missing 2D embeddings and interm save
+                    # HOTFIX: Missing 2D embeddings and interm save
 
         if eval_every_epochs != 0:
             if (epoch % eval_every_epochs == 0) | (epoch == n_epochs - 1):
                 print("eval_epoch", epoch)
-
+                # ENH: implement result logger
                 # add epoch number to the results
                 training_eval_results["epoch"].append(epoch)
 
                 # add epoch number to the results
-                training_eval_results["loss"].append(
-                    np.mean(losses[epoch])
-                )  # ENH: subst by loss.item()
+                training_eval_results["loss"].append(np.mean(losses[epoch]))
 
                 # same code as above for the batches
                 mteb_saving_name = Path(f"results_epoch_{epoch}")
@@ -265,42 +252,32 @@ def train_loop(
                     tasks=mteb_tasks,
                     path_to_save=saving_path / mteb_saving_name,
                 )
-                [training_eval_results[k].append(v) for k, v in eval_results.items()]
+                [
+                    (
+                        training_eval_results[k].append(v[0])
+                        if (k == "knn") | (k == "lin")
+                        else training_eval_results[k].append(v)
+                    )
+                    for k, v in eval_results.items()
+                ]
 
-                # # add 2D embedding
-                # embedding_cls, embedding_sep, embedding_av = (
-                #     wrapped_model.encode_dataset(eval_train_data, device=device)
-                # )
-                # embedding_rep_dict = {
-                #     "cls": (embedding_cls,),
-                #     "sep": (embedding_sep,),
-                #     "av": (embedding_av,),
-                # }  # ENH: when eliminating 3 reps option, modify this
+                # add 2D embedding
+                embedding_cls, embedding_sep, embedding_av = (
+                    wrapped_model.encode_dataset(eval_train_data, device=device)
+                )
+                embedding_rep_dict = {
+                    "cls": (embedding_cls,),
+                    "sep": (embedding_sep,),
+                    "av": (embedding_av,),
+                }  # ENH: when eliminating 3 reps option, modify this
 
-                # training_eval_results["2D_embed"].append(
-                #     embedding_rep_dict[eval_rep][0]
-                # )
+                with zipfile.ZipFile(saving_path / "interm_embeddings_2d", "a") as zf:
+                    with zf.open(f"embeddings_2d_epoch_{epoch}.npy", "w") as f:
+                        np.save(f, embedding_rep_dict[eval_rep][0])
 
                 # intermediate save
+                # ENH: incremental saving hdf5
                 pd.DataFrame(training_eval_results).to_hdf(
-                    saving_path / "training_eval_results.h5",
+                    saving_path / "df_log_training.h5",
                     key="df",
                 )
-
-    if (eval_every_epochs != 0) | (eval_every_batches != 0):
-        # convert results to dataframe
-        df_training_eval_results = pd.DataFrame(training_eval_results)
-
-        # transform every knn/lin value from an array to a single number, if only one rep was evaluated (array([0.6]) --> 0.6)
-        if "knn" in training_eval_results.keys():
-            df_training_eval_results["knn"] = df_training_eval_results["knn"].apply(
-                lambda x: x[0] if len(x) == 1 else x
-            )
-        if "lin" in training_eval_results.keys():
-            df_training_eval_results["lin"] = df_training_eval_results["lin"].apply(
-                lambda x: x[0] if len(x) == 1 else x
-            )
-
-        return losses, df_training_eval_results
-    else:
-        return losses

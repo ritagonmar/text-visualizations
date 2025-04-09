@@ -31,6 +31,13 @@ config = load_config(exp_config_name, configs_dir_path=configs_path)
 pooler = get_function(config["model"]["pooler"])
 eval_function = get_function(config["training"]["eval_function"])
 
+# get eval_rep
+eval_rep = (
+    pooler.sent_rep
+    if config["training"]["eval_rep"] is None
+    else config["training"]["eval_rep"]
+)
+
 # Add git commit hash to config
 config["log"] = dict()
 config["log"]["git_commit"] = get_git_commit_hash()
@@ -109,8 +116,7 @@ training_loader = torch.utils.data.DataLoader(
 )
 print(f"Training for {config["training"]["n_epochs"]} epochs")
 ## train model
-# training
-losses, df_training = train_loop(
+train_loop(
     wrapped_model,
     training_loader,
     device,
@@ -119,8 +125,7 @@ losses, df_training = train_loop(
     eval_every_epochs=config["training"]["eval_every_epochs"],
     eval_every_batches=config["training"]["eval_every_batches"],
     eval_function=eval_function,
-    pooler=pooler,
-    eval_rep=config["training"]["eval_rep"],
+    eval_rep=eval_rep,
     dist_metric=config["training"]["dist_metric"],
     saving_path=saving_path,
     mteb_tasks=config["training"]["mteb_tasks"],
@@ -132,21 +137,16 @@ losses, df_training = train_loop(
 wrapped_model.model.save_model(saving_path / "trained_model.pt", include_pooler=True)
 
 # save 2D embeddings
+# This is needed because the intermediate 2D embeddings are not of the full data,
+# but of the eval_training_data (which in the ICLR case is only labeled points).
+# This is not ideal but the only way possible now because train_loop does not take the
+# data in its raw format but as the loader, and only takes it in its "raw format"
+# for evaluation, and in the ICLR case this is only done with the labeled subset.
 _, _, embeddings_2d = wrapped_model.encode_dataset(
     iclr.abstract.to_list(), device=device
 )
 np.save(saving_path / "embeddings_2d", embeddings_2d)
 
-
-# Save results as parquet
-# ENH: implement result logger??
-np.save(saving_path / "losses", losses)
-df_training.to_parquet(
-    saving_path / "df_log_training",
-    index=False,
-    engine="pyarrow",
-    compression="gzip",
-)
 # runtime
 end = time.time()
 runtime_total = end - start
