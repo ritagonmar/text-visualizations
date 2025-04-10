@@ -13,6 +13,7 @@ from text_visualizations.train_stuff import fix_all_seeds
 from text_visualizations.data_stuff import MultOverlappingSentencesPairDataset
 from text_visualizations.models import ModelProjector, ModelProjectorWrapper
 from text_visualizations.train_stuff import train_loop
+from text_visualizations.logger import MyTrainingLogger
 
 
 ### SETUP
@@ -115,6 +116,10 @@ training_loader = torch.utils.data.DataLoader(
     generator=gen,
 )
 print(f"Training for {config["training"]["n_epochs"]} epochs")
+
+# logger
+logger = MyTrainingLogger(saving_path=saving_path)
+
 ## train model
 train_loop(
     wrapped_model,
@@ -127,11 +132,13 @@ train_loop(
     eval_function=eval_function,
     eval_rep=eval_rep,
     dist_metric=config["training"]["dist_metric"],
-    saving_path=saving_path,
+    mteb_saving_path=saving_path,
     mteb_tasks=config["training"]["mteb_tasks"],
     n_epochs=config["training"]["n_epochs"],
     lr=config["training"]["lr"],
     scale=config["training"]["scale"],
+    save_interm_embeds=config["training"]["save_interm_embeds"],
+    logger=logger,
 )
 # save model checkpoint
 wrapped_model.model.save_model(saving_path / "trained_model.pt", include_pooler=True)

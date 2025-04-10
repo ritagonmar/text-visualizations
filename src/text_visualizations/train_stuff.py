@@ -1,14 +1,11 @@
-import zipfile
 import numpy as np
-import pandas as pd
 import random
 import torch
 from transformers.optimization import get_linear_schedule_with_warmup
 from tqdm import tqdm
-from collections import defaultdict
 from pathlib import Path
 
-from text_visualizations.eval_functions import KNNEval, MTEBEval
+from text_visualizations.eval_functions import MTEBEval
 
 
 def fix_all_seeds(seed=42):
@@ -73,14 +70,16 @@ def train_loop(
     eval_test_labels=None,
     eval_every_epochs=True,  # bool, {True, False}
     eval_every_batches=0,  # int, 0 would be like none
-    eval_function=KNNEval,
+    eval_function=None,
     eval_rep="av",  # representation to evaluate, if None it is the same used by pooler
     dist_metric="euclidean",
-    saving_path=None,
+    mteb_saving_path=None,
     mteb_tasks=None,
     n_epochs=1,
     lr=2e-5,
     scale=20.0,  # we multiply similarity score by this scale value, it is the inverse of the temperature
+    save_interm_embeds=True,
+    logger=None,
 ):
     """Train loop to train a pytorch sentence embedding model.
 
@@ -99,7 +98,7 @@ def train_loop(
     eval_test_data : list, default=None
         If you want the training and the evaluation to happen in different splits of the data, you need to pass a test set. None when eval is on MTEB or no train/test split.
 
-    saving_path : str, default=None #TODO: update
+    mteb_saving_path : str, default=None 
         Path where MTEB evaluation will create a directory to save its results.
     ...
 
@@ -107,15 +106,15 @@ def train_loop(
     -------
 
     """
+    assert logger is None, "You need to pass a logger"
+    assert ((eval_every_epochs==True)|(eval_every_batches!=0)) & (eval_function=None), "You want to evaluate and did not pass an evaluation function"
 
     assert not eval_function == MTEBEval or (
-        saving_path is not None and mteb_tasks is not None
+        mteb_saving_path is not None and mteb_tasks is not None
     ), "You forgot either the MTEB saving path or list of tasks for the MTEB evaluation."
 
-    if (
-        eval_every_batches != 0
-    ):  # if this happens, eval happens after every X batch and after the last batch
-        eval_every_epochs = False  # therefore, we set the evaluation after the full epoch to 0 to not evaluate twice after the last batch of the epoch
+    if eval_every_batches != 0:
+        eval_every_epochs = True  # because after the last batch it is not saved
 
     ## training set up
     wrapped_model.model.to(device)
@@ -140,11 +139,7 @@ def train_loop(
         num_training_steps=total_steps,
     )
 
-    losses = np.empty((n_epochs, len(loader)))
-
-    # initialize eval list
-    if (eval_every_epochs != 0) | (eval_every_batches != 0):
-        training_eval_results = defaultdict(list)
+    losses = np.empty((n_epochs, len(loader)))  # needed despite logger
 
     ## training
     for epoch in range(n_epochs):
@@ -152,7 +147,8 @@ def train_loop(
         # initialize the dataloader loop with tqdm (tqdm == progress bar)
         loop = tqdm(loader, leave=True)
         for i_batch, batch in enumerate(loop):
-            ## train -- finished
+            wrapped_model.model.train()
+            ## train
             # zero all gradients on each new step
             optim.zero_grad()
             # prepare batches and move all to the active device
@@ -197,14 +193,10 @@ def train_loop(
 
             ## evaluation
             if eval_every_batches != 0:
-                if (i_batch % eval_every_batches == 0) | (i_batch == len(loader) - 1):
-                    # add batch number to the results
-                    training_eval_results["batch"].append(i_batch + len(loader) * epoch)
-
-                    # add loss to the results
-                    training_eval_results["loss"].append(losses[epoch, i_batch])
-
-                    # path with batch number for saving MTEB results
+                if (
+                    i_batch % eval_every_batches == 0
+                ):  # does not save after the last batch, for that there is the epochs loop below
+                    # evaluation
                     mteb_saving_name = Path(f"results_epoch_{epoch}_batch_{i_batch}")
 
                     eval_results = eval_function(  # some of these are needed for knn eval and some others for mteb
@@ -217,28 +209,23 @@ def train_loop(
                         eval_rep=eval_rep,
                         dist_metric=dist_metric,
                         tasks=mteb_tasks,
-                        path_to_save=saving_path / mteb_saving_name,
+                        path_to_save=mteb_saving_path / mteb_saving_name,
                     )
-                    [
-                        training_eval_results[k].append(v)
-                        for k, v in eval_results.items()
-                    ]
-                    wrapped_model.model.train()
-
-                    # HOTFIX: Missing 2D embeddings and interm save
+                    # save
+                    logger.log_metrics(
+                        epoch=epoch,
+                        losses=losses[epoch, i_batch],
+                        eval_results=eval_results,
+                        embeddings_2d=None,  # we don't save the 2D embeddings after batches eval
+                    )
 
         if eval_every_epochs != 0:
             if (epoch % eval_every_epochs == 0) | (epoch == n_epochs - 1):
                 print("eval_epoch", epoch)
-                # ENH: implement result logger
-                # add epoch number to the results
-                training_eval_results["epoch"].append(epoch)
-
-                # add epoch number to the results
-                training_eval_results["loss"].append(np.mean(losses[epoch]))
-
-                # same code as above for the batches
-                mteb_saving_name = Path(f"results_epoch_{epoch}")
+                # evaluation
+                mteb_saving_name = Path(
+                    f"results_epoch_{epoch}"
+                )  # path with batch number for saving MTEB results
 
                 eval_results = eval_function(  # some of these are needed for knn eval and some others for mteb
                     wrapped_model=wrapped_model,
@@ -250,34 +237,27 @@ def train_loop(
                     eval_rep=eval_rep,
                     dist_metric=dist_metric,
                     tasks=mteb_tasks,
-                    path_to_save=saving_path / mteb_saving_name,
+                    path_to_save=mteb_saving_path / mteb_saving_name,
                 )
-                [
-                    (
-                        training_eval_results[k].append(v[0])
-                        if (k == "knn") | (k == "lin")
-                        else training_eval_results[k].append(v)
+
+                # get 2D embeddings
+                if save_interm_embeds is not None:
+                    embedding_cls, embedding_sep, embedding_av = (
+                        wrapped_model.encode_dataset(eval_train_data, device=device)
                     )
-                    for k, v in eval_results.items()
-                ]
+                    embedding_rep_dict = {
+                        "cls": (embedding_cls,),
+                        "sep": (embedding_sep,),
+                        "av": (embedding_av,),
+                    }  # ENH: when eliminating 3 reps option, modify this
+                    embeddings_2d = embedding_rep_dict[eval_rep][0]
+                else:
+                    embeddings_2d = None
 
-                # add 2D embedding
-                embedding_cls, embedding_sep, embedding_av = (
-                    wrapped_model.encode_dataset(eval_train_data, device=device)
-                )
-                embedding_rep_dict = {
-                    "cls": (embedding_cls,),
-                    "sep": (embedding_sep,),
-                    "av": (embedding_av,),
-                }  # ENH: when eliminating 3 reps option, modify this
-
-                with zipfile.ZipFile(saving_path / "interm_embeddings_2d", "a") as zf:
-                    with zf.open(f"embeddings_2d_epoch_{epoch}.npy", "w") as f:
-                        np.save(f, embedding_rep_dict[eval_rep][0])
-
-                # intermediate save
-                # ENH: incremental saving hdf5
-                pd.DataFrame(training_eval_results).to_hdf(
-                    saving_path / "df_log_training.h5",
-                    key="df",
+                # save
+                logger.log_metrics(
+                    epoch=epoch,
+                    losses=np.mean(losses[epoch]),
+                    eval_results=eval_results,
+                    embeddings_2d=embeddings_2d,
                 )
