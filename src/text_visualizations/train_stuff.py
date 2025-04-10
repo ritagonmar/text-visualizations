@@ -98,7 +98,7 @@ def train_loop(
     eval_test_data : list, default=None
         If you want the training and the evaluation to happen in different splits of the data, you need to pass a test set. None when eval is on MTEB or no train/test split.
 
-    mteb_saving_path : str, default=None 
+    mteb_saving_path : str, default=None
         Path where MTEB evaluation will create a directory to save its results.
     ...
 
@@ -106,8 +106,11 @@ def train_loop(
     -------
 
     """
-    assert logger is None, "You need to pass a logger"
-    assert ((eval_every_epochs==True)|(eval_every_batches!=0)) & (eval_function=None), "You want to evaluate and did not pass an evaluation function"
+    assert logger is not None, "You need to pass a logger"
+    assert not (
+        ((eval_every_epochs == True) | (eval_every_batches != 0))
+        & (eval_function == None)
+    ), "You want to evaluate and did not pass an evaluation function"
 
     assert not eval_function == MTEBEval or (
         mteb_saving_path is not None and mteb_tasks is not None

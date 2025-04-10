@@ -9,7 +9,7 @@ class MyTrainingLogger:
         self.saving_path = saving_path
         self.training_eval_results = defaultdict(list)
        
-    def log_metrics(*,self, epoch, losses, eval_results, embeddings_2d, **kwargs):
+    def log_metrics(self, epoch, losses, eval_results, embeddings_2d, **kwargs):
         # epoch
         self.training_eval_results["epoch"].append(epoch)
 

@@ -65,6 +65,7 @@ iclr = pd.read_parquet(
     data_path / "iclr25v2.parquet",
     engine="fastparquet",
 )
+iclr=iclr[:500]
 eval_train_data = iclr.abstract[iclr.labels != "unlabeled"].to_list()
 eval_train_labels = iclr.labels[iclr.labels != "unlabeled"].to_list()
 
