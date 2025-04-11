@@ -82,19 +82,19 @@ class InfoNCET(InfoNCEGaussian):
         super().__init__(temperature=temperature)
         self.dof = dof
 
-    def forward(self, features):
-        batch_size = features.size(0) // 2
+    def forward(self, a, b):
+        # batch_size = features.size(0) // 2
 
-        features = features.float()
-        a = features[:batch_size]
-        b = features[batch_size:]
+        # features = features.float()
+        # a = features[:batch_size]
+        # b = features[batch_size:]
 
         d_aa = torch.cdist(a, a).square() * self.temperature
         d_bb = torch.cdist(b, b).square() * self.temperature
         d_ab = torch.cdist(a, b).square() * self.temperature
 
         if self.dof is None:
-            dof = max(2, features.size(1) // 10)
+            dof = max(2, a.size(1) // 10)
         else:
             dof = self.dof
 
@@ -106,7 +106,7 @@ class InfoNCET(InfoNCEGaussian):
         tempered_alignment = sim_ab.diagonal().mean()
 
         # exclude self inner product
-        self_mask = torch.eye(batch_size, dtype=bool, device=sim_aa.device)
+        self_mask = torch.eye(a.size(0), dtype=bool, device=sim_aa.device)
         sim_aa.masked_fill_(self_mask, float("-inf"))
         sim_bb.masked_fill_(self_mask, float("-inf"))
 
@@ -116,11 +116,7 @@ class InfoNCET(InfoNCEGaussian):
         raw_uniformity = logsumexp_1 + logsumexp_2
 
         loss = -(tempered_alignment - raw_uniformity / 2)
-        return dict(
-            loss=loss,
-            ta=-tempered_alignment,
-            ru=raw_uniformity / 2,
-        )
+        return loss
 
 
 class InfoNCECauchy(InfoNCET):
