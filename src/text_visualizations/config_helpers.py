@@ -94,6 +94,28 @@ def get_git_commit_hash():
         return "Git hash not available"
 
 
+def get_nested_value(data, key_path, delimiter="."):
+    """
+    Retrieve the value from a nested dictionary using a string of keys separated by a delimiter.
+    
+    :param data: The nested dictionary to search in.
+    :param key_path: A string representing the path of keys (e.g., "parent1.child1.key").
+    :param delimiter: The delimiter used to separate keys in the string (default is ".").
+    :return: The value corresponding to the last key in the path, or None if any key is not found.
+    """
+    keys = key_path.split(delimiter)  # Split the key path into individual keys
+    current_value = data
+    
+    try:
+        for key in keys:
+            current_value = current_value[key]  # Navigate deeper into the dictionary
+        return current_value
+    except (KeyError, TypeError):
+        return None  # Return None if any key is not found or if the structure is invalid
+
+
+
+
 # --------------------------------------------
 
 

@@ -250,7 +250,10 @@ def train_loop(
                 )
 
                 # get 2D embeddings
-                if save_interm_embeds is not None:
+                print(
+                    "train_loop, save_interm_embeds is: ", (save_interm_embeds)
+                )
+                if save_interm_embeds:
                     embedding_cls, embedding_sep, embedding_av = (
                         wrapped_model.encode_dataset(eval_train_data, device=device)
                     )

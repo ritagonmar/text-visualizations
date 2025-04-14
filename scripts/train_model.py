@@ -43,21 +43,32 @@ eval_rep = (
 config["log"] = dict()
 config["log"]["git_commit"] = get_git_commit_hash()
 config["log"]["start_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 # create saving path
-exp_name = os.path.basename(exp_config_name).split(".")[0]
+exp_name = Path(exp_config_name).stem
 saving_path = (
     variables_path
     / Path(config["model"]["model_name"].lower())
     / Path(config["data_loader"]["dataset"].lower())
     / Path(exp_name + "_" + datetime.now().strftime("%Y%m%d"))
 )
+if "hyperparameter_sweep" in config.keys():
+    exp_number = exp_name.split("__")[0]  #'exp007'
+    param_values = exp_name.split("__")[1]  #'lr-0.001_scale-0.2'
+    saving_path = (
+        variables_path
+        / Path(config["model"]["model_name"].lower())
+        / Path(config["data_loader"]["dataset"].lower())
+        / Path(exp_number + "_" + datetime.now().strftime("%Y%m%d"))
+        / Path(param_values)
+    )
 saving_path.mkdir(parents=True, exist_ok=True)
 
 # save enhanced config file to results directory
 with open(os.path.join(saving_path, "config.yaml"), "w") as f:
     yaml.dump(config, f)
 
-
+### TRAINING
 ## read dataset
 # ENH: implement a class? iclr and huggingface datasets are very different
 # SOLUTION FOR NOW:
@@ -65,7 +76,7 @@ iclr = pd.read_parquet(
     data_path / "iclr25v2.parquet",
     engine="fastparquet",
 )
-# iclr=iclr[:500]
+# iclr = iclr[:500]
 eval_train_data = iclr.abstract[iclr.labels != "unlabeled"].to_list()
 eval_train_labels = iclr.labels[iclr.labels != "unlabeled"].to_list()
 
@@ -107,7 +118,7 @@ training_dataset = MultOverlappingSentencesPairDataset(
     device,
     n_cons_sntcs=config["data_loader"]["n_cons_sntcs"],
 )
-
+print(config["data_loader"]["batch_size"])
 gen = torch.Generator()
 gen.manual_seed(42)
 training_loader = torch.utils.data.DataLoader(

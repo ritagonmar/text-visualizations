@@ -2,6 +2,7 @@
 data
 results/variables
 results/figures/tmp
+configs/exptest.yaml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

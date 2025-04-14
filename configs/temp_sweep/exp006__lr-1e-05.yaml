@@ -1,0 +1,28 @@
+data_loader:
+  batch_size: 512
+  dataset: ICLR
+  n_cons_sntcs: 2
+hyperparameter_sweep:
+- training.lr
+model:
+  freeze_backbone: true
+  hidden_dims:
+  - 1536
+  - 768
+  - 192
+  in_dim: 768
+  model_name: SBERT
+  model_path: sentence-transformers/all-mpnet-base-v2
+  output_dim: 2
+  pooler: train_stuff.mean_pool
+training:
+  dist_metric: euclidean
+  eval_every_batches: 0
+  eval_every_epochs: 5
+  eval_function: eval_functions.KNNEval
+  eval_rep: null
+  lr: 1.0e-05
+  mteb_tasks: null
+  n_epochs: 5
+  save_interm_embeds: false
+  scale: 20.0
