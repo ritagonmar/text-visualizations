@@ -1,0 +1,25 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+
+data_loader:
+  batch_size : 
+  - 512
+  - 768
+  - 1024
+  # - 1280
+  - 1536
+  - 2048
+
+training:
+  n_epochs : 5
+  eval_every_epochs: 5
+  save_interm_embeds : False
+  lr : !!float 1e-2
+  scale : !!float 1e-3 
+
+  
+hyperparameter_sweep:
+- data_loader.batch_size
+
+

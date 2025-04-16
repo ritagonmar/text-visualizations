@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from text_visualizations.infonce import InfoNCET
+from text_visualizations.infonce import InfoNCET, InfoNCECauchy
 import torch
 from transformers.optimization import get_linear_schedule_with_warmup
 from tqdm import tqdm
@@ -81,6 +81,7 @@ def train_loop(
     scale=20.0,  # we multiply similarity score by this scale value, it is the inverse of the temperature
     save_interm_embeds=True,
     logger=None,
+    loss_class=None,
 ):
     """Train loop to train a pytorch sentence embedding model.
 
@@ -108,6 +109,7 @@ def train_loop(
 
     """
     assert logger is not None, "You need to pass a logger"
+    assert loss_class is not None, "You need to pass a loss function"
     assert not (
         ((eval_every_epochs == True) | (eval_every_batches != 0))
         & (eval_function == None)
@@ -126,7 +128,7 @@ def train_loop(
     # define layers to be used in multiple-negatives-ranking
     # cos_sim = torch.nn.CosineSimilarity()
     # loss_func = torch.nn.CrossEntropyLoss()
-    loss_func = InfoNCET(temperature=1 / scale)
+    loss_func = loss_class(temperature=1 / scale)
 
     # move layers to device
     # cos_sim.to(device)
@@ -250,9 +252,7 @@ def train_loop(
                 )
 
                 # get 2D embeddings
-                print(
-                    "train_loop, save_interm_embeds is: ", (save_interm_embeds)
-                )
+                print("train_loop, save_interm_embeds is: ", (save_interm_embeds))
                 if save_interm_embeds:
                     embedding_cls, embedding_sep, embedding_av = (
                         wrapped_model.encode_dataset(eval_train_data, device=device)

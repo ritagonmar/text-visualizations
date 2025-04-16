@@ -1,9 +1,7 @@
 import yaml
 import argparse
-import os
 from copy import deepcopy
 import importlib
-from datetime import datetime
 import subprocess
 
 
@@ -116,34 +114,3 @@ def get_nested_value(data, key_path, delimiter="."):
 
 
 
-# --------------------------------------------
-
-
-# def create_path(exp_config_path, model_name, variables_path, important_params):
-
-#     # Extract experiment name from config file path
-#     exp_name = os.path.basename(config_path).split('.')[0]
-
-    
-#     # Create results directory if it doesn't exist
-#     results_dir = os.path.join('results', exp_name)
-#     os.makedirs(results_dir, exist_ok=True)
-    
-#     # Add metadata
-#     merged_config['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#     merged_config['base_config'] = base_config_path
-#     merged_config['experiment_config'] = config_path
-    
-#     # Save merged configuration to results directory for reproducibility
-#     with open(os.path.join(results_dir, 'config.yaml'), 'w') as f:
-#         yaml.dump(merged_config, f, default_flow_style=False, sort_keys=False)
-    
-#     return merged_config, results_dir
-
-
-
-# # Example usage
-# if __name__ == '__main__':
-#     config, results_dir = load_config('configs/exp001_lr0.001.yaml')
-#     print(f"Loaded config for experiment: {results_dir}")
-#     print(f"Learning rate: {config['training']['learning_rate']}")

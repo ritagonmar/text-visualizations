@@ -1,0 +1,23 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+
+data_loader:
+  batch_size : 
+  - 64
+  - 128
+  - 256
+
+training:
+  n_epochs : 5
+  eval_every_epochs: 5
+  save_interm_embeds : False
+  lr : !!float 1e-2
+  scale : !!float 1e-3
+  loss_class : "infonce.InfoNCECauchy"
+
+  
+hyperparameter_sweep:
+- data_loader.batch_size
+
+

@@ -31,6 +31,7 @@ config = load_config(exp_config_name, configs_dir_path=configs_path)
 # extract pooler and eval functions
 pooler = get_function(config["model"]["pooler"])
 eval_function = get_function(config["training"]["eval_function"])
+loss_class = get_function(config["training"]["loss_class"])
 
 # get eval_rep
 eval_rep = (
@@ -151,6 +152,7 @@ train_loop(
     scale=config["training"]["scale"],
     save_interm_embeds=config["training"]["save_interm_embeds"],
     logger=logger,
+    loss_class=loss_class,
 )
 # save model checkpoint
 wrapped_model.model.save_model(saving_path / "trained_model.pt", include_pooler=True)

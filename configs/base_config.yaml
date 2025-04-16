@@ -25,3 +25,4 @@ training:
   lr : !!float 2e-5
   scale : 20.0 
   save_interm_embeds: True
+  loss_class : "infonce.InfoNCET"

@@ -3,6 +3,7 @@ data
 results/variables
 results/figures/tmp
 configs/exptest.yaml
+configs/temp_sweep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

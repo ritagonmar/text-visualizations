@@ -1,0 +1,15 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+
+data_loader:
+  batch_size : 512
+
+training:
+  n_epochs : 250
+  eval_every_epochs: 50
+  lr : !!float 1e-2
+  scale : !!float 1e-3 
+
+
+
