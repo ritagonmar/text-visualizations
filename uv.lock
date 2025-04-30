@@ -1371,6 +1371,22 @@ wheels = [
 ]
 
 [[package]]
+name = "opentsne"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/71/09/357810160298701c979a75c9d4db27e6e8996add0d7879d60cc648341171/opentsne-1.0.2.tar.gz", hash = "sha256:e2aecaa7a487100246f2d3fef9855d1bd6cc02a1c6da8fb2a54583f307aa4229", size = 251206 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/c2/2032c772b0bce9c09fdb3cd45bdb6cfe1e7b177ce1f5e21952cc49af264b/openTSNE-1.0.2-cp312-cp312-macosx_10_12_universal2.whl", hash = "sha256:0de8826568aa4f03658274edb393a5be031f771ea86f3493e91aecad27100c56", size = 1006929 },
+    { url = "https://files.pythonhosted.org/packages/3c/9e/bc5edb00d363dcaf3c3708036c60930d18797621dfa1651bbf68245ab30f/openTSNE-1.0.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:37f24d7d139bd466f00ae765120c3a8049ceddc1282e63d75e3406c3ac3b3783", size = 3163997 },
+    { url = "https://files.pythonhosted.org/packages/ae/d1/4cf81122288257765600faa093121530503d2893d56f9e5f68702dbd5da0/openTSNE-1.0.2-cp312-cp312-win_amd64.whl", hash = "sha256:7f342ec51fe365cd1a23ad25e6a7b5417f8bd1bf4d71a5d526f42ad4c4b64114", size = 469294 },
+]
+
+[[package]]
 name = "outcome"
 version = "1.3.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -2176,6 +2192,7 @@ dependencies = [
     { name = "mteb" },
     { name = "nbdev" },
     { name = "numpy" },
+    { name = "opentsne" },
     { name = "pandas" },
     { name = "pathlib" },
     { name = "pre-commit" },
@@ -2202,6 +2219,7 @@ requires-dist = [
     { name = "mteb", specifier = ">=1.19.9" },
     { name = "nbdev", specifier = ">=2.3.37" },
     { name = "numpy", specifier = ">=2.1.3" },
+    { name = "opentsne", specifier = ">=1.0.2" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pathlib", specifier = ">=1.0.1" },
     { name = "pre-commit", specifier = ">=4.2.0" },
