@@ -125,13 +125,8 @@ def train_loop(
     ## training set up
     wrapped_model.model.to(device)
 
-    # define layers to be used in multiple-negatives-ranking
-    # cos_sim = torch.nn.CosineSimilarity()
-    # loss_func = torch.nn.CrossEntropyLoss()
+    # define loss and move it to device
     loss_func = loss_class(temperature=1 / scale)
-
-    # move layers to device
-    # cos_sim.to(device)
     loss_func.to(device)
 
     # initialize Adam optimizer
@@ -174,22 +169,8 @@ def train_loop(
             )
             p = wrapped_model.get_outputs(input_ids=pos_ids, attention_mask=pos_mask)
 
-            # # calculate the cosine similarities
-            # scores = torch.stack(
-            #     [cos_sim(a_i.reshape(1, a_i.shape[0]), p) for a_i in a]
-            # )
-            # # get label(s) - we could define this before if confident
-            # # of consistent batch sizes
-            # labels = torch.tensor(
-            #     range(len(scores)), dtype=torch.long, device=scores.device
-            # )  # the labels are just the "label" of which pair it is (0 for the first pair, 1 for the second)
-            # # they are used in the loss to know which of the cosine similarities should be high and which low
-
-            # # and now calculate the loss
-            # loss = loss_func(scores * scale, labels)
-
+            # calculate the loss
             loss = loss_func(a, p)
-
             losses[epoch, i_batch] = loss.item()
 
             # using loss, calculate gradients and then optimize

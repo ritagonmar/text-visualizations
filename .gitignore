@@ -4,6 +4,8 @@ results/variables
 results/figures/tmp
 configs/exptest.yaml
 configs/temp_sweep
+configs/exp0XX*
+src/text_visualizations/_cne.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

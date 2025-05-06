@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "annoy>=1.17.3",
     "autoreload>=0.1.2",
     "black>=25.1.0",
     "datasets>=3.4.1",

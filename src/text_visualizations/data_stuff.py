@@ -6,17 +6,14 @@ import torch
 
 class SentencePairDataset(torch.utils.data.Dataset):
     def __init__(self, abstracts, tokenizer, device, tokenizer_kwargs=None, seed=42):
-        # actually a list of tokens
         self.abstracts = abstracts
         self.rng = np.random.default_rng(seed)
 
         self.sentences_map = [
             (s.strip() + ".", i)
-            for i, sentences in enumerate(
-                abstracts.map(lambda a: a.split("."))
-            )
+            for i, sentences in enumerate(abstracts.map(lambda a: a.split(".")))
             for s in sentences
-            if (len(s) >= 100) & (len(s) <= 250)  #limit the sentence lengths
+            if (len(s) >= 100) & (len(s) <= 250)  # limit the sentence lengths
         ]
 
         if tokenizer_kwargs is None:
@@ -30,7 +27,6 @@ class SentencePairDataset(torch.utils.data.Dataset):
         self.sentences_tok = tokenizer(
             [x for x, _ in self.sentences_map], **tokenizer_kwargs
         ).to(device)
-
 
         # we group the flat sentences by the original abstract they
         # come from.  Then we can check whether we have enough
@@ -88,7 +84,7 @@ class MultSentencesPairDataset(torch.utils.data.Dataset):
         # actually a list of tokens
         self.abstracts = abstracts
         self.rng = np.random.default_rng(seed)
-        self.n_cons_sntcs=n_cons_sntcs
+        self.n_cons_sntcs = n_cons_sntcs
 
         regex_block = r".{5,}?\."
         _regex = regex_block
@@ -101,7 +97,8 @@ class MultSentencesPairDataset(torch.utils.data.Dataset):
                 abstracts.map(lambda a: re.findall(_regex, a, flags=re.S))
             )
             for s in sentences
-            if (len(s) >= 100*self.n_cons_sntcs) & (len(s) <= 250*self.n_cons_sntcs)  #limit the sentence lengths
+            if (len(s) >= 100 * self.n_cons_sntcs)
+            & (len(s) <= 250 * self.n_cons_sntcs)  # limit the sentence lengths
         ]
 
         if tokenizer_kwargs is None:
@@ -115,7 +112,6 @@ class MultSentencesPairDataset(torch.utils.data.Dataset):
         self.sentences_tok = tokenizer(
             [x for x, _ in self.sentences_map], **tokenizer_kwargs
         ).to(device)
-
 
         # we group the flat sentences by the original abstract they
         # come from.  Then we can check whether we have enough
@@ -169,8 +165,8 @@ class MultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
         # actually a list of tokens
         self.abstracts = abstracts
         self.rng = np.random.default_rng(seed)
-        self.n_cons_sntcs=n_cons_sntcs
-        
+        self.n_cons_sntcs = n_cons_sntcs
+
         # sentence map
         self.sentences_map = []
         for i, sentences in enumerate(
@@ -179,13 +175,17 @@ class MultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
             for j in range(
                 len(sentences) - (self.n_cons_sntcs - 1)
             ):  # loop through sentences inside abstract
-                if (len(sentences[j]) >= 100) & (len(sentences[j]) <= 250):  # length conditions
+                if (len(sentences[j]) >= 100) & (
+                    len(sentences[j]) <= 250
+                ):  # length conditions
                     cons_sentences_pack = ""
                     cons_sentence_counts = 0
                     for k in range(
                         len(sentences) - j
                     ):  # loop through sentences to add them
-                        if (len(sentences[j + k]) >= 100) & (len(sentences[j+k]) <= 250):  # length conditions
+                        if (len(sentences[j + k]) >= 100) & (
+                            len(sentences[j + k]) <= 250
+                        ):  # length conditions
                             cons_sentences_pack += sentences[j + k].strip() + ". "
                             cons_sentence_counts += 1
 
@@ -194,7 +194,6 @@ class MultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
                         ):  # check if we have already enough sentences
                             self.sentences_map.append((cons_sentences_pack, i))
                             break
-
 
         if tokenizer_kwargs is None:
             tokenizer_kwargs = dict(
@@ -207,7 +206,6 @@ class MultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
         self.sentences_tok = tokenizer(
             [x for x, _ in self.sentences_map], **tokenizer_kwargs
         ).to(device)
-
 
         # we group the flat sentences by the original abstract they
         # come from.  Then we can check whether we have enough
@@ -284,9 +282,7 @@ class MultOverlappingSentencesLabelPairDataset(torch.utils.data.Dataset):
                         if (len(sentences[j + k]) >= 100) & (
                             len(sentences[j + k]) <= 250
                         ):  # length conditions
-                            cons_sentences_pack += (
-                                sentences[j + k].strip() + ". "
-                            )
+                            cons_sentences_pack += sentences[j + k].strip() + ". "
                             cons_sentence_counts += 1
 
                         if (
@@ -356,8 +352,7 @@ class MultOverlappingSentencesLabelPairDataset(torch.utils.data.Dataset):
             for i, elem in enumerate(
                 zip(self.abs_sentences, self.abs_toks, self.abs_amsk)
             )
-            if (elem[0][0][2] == abstract1_label)
-            & (elem[0][0][1] != abstract1_idx)
+            if (elem[0][0][2] == abstract1_label) & (elem[0][0][1] != abstract1_idx)
         ]
 
         iabstract2 = self.rng.choice(len(abstracts_same_label), replace=False)
@@ -376,7 +371,7 @@ class MultOverlappingSentencesLabelPairDataset(torch.utils.data.Dataset):
 
 
 class SameSentencePairDataset(torch.utils.data.Dataset):
-    """ Dropout based augmentation (like SimCSE).
+    """Dropout based augmentation (like SimCSE).
     Only the __getitem__ method changes with respect to the MultOverlappingSentencesPairDataset class.
     """
 
@@ -412,9 +407,7 @@ class SameSentencePairDataset(torch.utils.data.Dataset):
                         if (len(sentences[j + k]) >= 100) & (
                             len(sentences[j + k]) <= 250
                         ):  # length conditions
-                            cons_sentences_pack += (
-                                sentences[j + k].strip() + ". "
-                            )
+                            cons_sentences_pack += sentences[j + k].strip() + ". "
                             cons_sentence_counts += 1
 
                         if (
@@ -477,7 +470,7 @@ class SameSentencePairDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.abs_sentences)
-    
+
 
 class AbstractSplitDataset(torch.utils.data.Dataset):
     def __init__(
@@ -493,8 +486,7 @@ class AbstractSplitDataset(torch.utils.data.Dataset):
         regex_block = r".{5,}?\."
         for i, (abstract) in enumerate(abstracts):
             n_sntcs = sum(
-                1
-                for _ in re.finditer(regex_block + r"\s", abstract, flags=re.S)
+                1 for _ in re.finditer(regex_block + r"\s", abstract, flags=re.S)
             )
             # n_sntcs = abstract.count(".")
 
@@ -568,15 +560,15 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
         device,
         tokenizer_kwargs=None,
         fraction_masked=0.4,
-        truncate = False,
-        cut_off = 1500,
+        truncate=False,
+        cut_off=1500,
         seed=42,
     ):
         # actually a list of tokens
         self.abstracts = abstracts
         self.rng = np.random.default_rng(seed)
         self.fraction_masked = fraction_masked
-        self.device=device
+        self.device = device
         self.cut_off = cut_off
 
         if tokenizer_kwargs is None:
@@ -589,7 +581,7 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
             )
 
         if truncate == True:
-            self.abstracts = [elem[:self.cut_off] for elem in self.abstracts]
+            self.abstracts = [elem[: self.cut_off] for elem in self.abstracts]
 
         self.abstracts_tok = tokenizer(self.abstracts, **tokenizer_kwargs).to(
             self.device
@@ -641,7 +633,6 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.abstracts)
-    
 
 
 class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
@@ -681,9 +672,7 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
                         if (len(sentences[j + k]) >= 100) & (
                             len(sentences[j + k]) <= 250
                         ):  # length conditions
-                            cons_sentences_pack += (
-                                sentences[j + k].strip() + ". "
-                            )
+                            cons_sentences_pack += sentences[j + k].strip() + ". "
                             cons_sentence_counts += 1
 
                         if (
@@ -784,9 +773,7 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
         mask_2 = np.zeros(real_sentences_length_2, dtype=int)
         mask_2[: round(real_sentences_length_2 * self.fraction_masked)] = 1
         self.rng.shuffle(mask_2)
-        mask_2 = np.pad(
-            mask_2, (1, len(sentences_2) - real_sentences_length_2 - 1)
-        )
+        mask_2 = np.pad(mask_2, (1, len(sentences_2) - real_sentences_length_2 - 1))
         mask_2 = torch.from_numpy(mask_2).to(self.device)
 
         sentences_2_masked = torch.where(
@@ -799,3 +786,54 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.abs_sentences)
+
+
+class NeighborAbstracts(torch.utils.data.Dataset):
+    """Returns a pair of neighboring points in the dataset.
+    It returns for each point its input tokens and attention mask.
+    Code modified from NeighborTransformData in _cne.py, from repo https://github.com/berenslab/contrastive-ne/tree/master
+
+    Parameters
+    ----------
+
+    abstracts : list
+
+
+    """
+
+    def __init__(
+        self,
+        abstracts,
+        tokenizer,
+        device,
+        neighbor_mat,
+        tokenizer_kwargs=None,
+        seed=42,
+    ):
+
+        self.abstracts = abstracts
+        self.neighbor_mat = neighbor_mat
+        self.rng = np.random.default_rng(seed)
+
+        if tokenizer_kwargs is None:
+            tokenizer_kwargs = dict(
+                max_length=512,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+
+        self.tok_output = tokenizer(self.abstracts, **tokenizer_kwargs).to(device)
+
+    def __len__(self):
+        return len(self.abstracts)
+
+    def __getitem__(self, i):
+        neighs = self.neighbor_mat[i].nonzero()[1]
+        nidx = self.rng.choice(neighs)
+
+        item = self.tok_output.input_ids[i]
+        item_amask = self.tok_output.attention_mask[i]
+        neigh = self.tok_output.input_ids[nidx]
+        neigh_amask = self.tok_output.attention_mask[nidx]
+        return (item, item_amask), (neigh, neigh_amask)

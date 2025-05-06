@@ -82,6 +82,12 @@ wheels = [
 ]
 
 [[package]]
+name = "annoy"
+version = "1.17.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/38/e321b0e05d8cc068a594279fb7c097efb1df66231c295d482d7ad51b6473/annoy-1.17.3.tar.gz", hash = "sha256:9cbfebefe0a5f843eba29c6be4c84d601f4f41ad4ded0486f1b88c3b07739c15", size = 647460 }
+
+[[package]]
 name = "appnope"
 version = "0.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2178,6 +2184,7 @@ name = "text-visualizations"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "annoy" },
     { name = "autoreload" },
     { name = "black" },
     { name = "datasets" },
@@ -2205,6 +2212,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "annoy", specifier = ">=1.17.3" },
     { name = "autoreload", specifier = ">=0.1.2" },
     { name = "black", specifier = ">=25.1.0" },
     { name = "datasets", specifier = ">=3.4.1" },

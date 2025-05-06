@@ -4,16 +4,17 @@ from torch import nn
 
 
 class InfoNCECosine(nn.Module):
+    """Modified by me from Nik's original code"""
     def __init__(self, temperature: float = 0.5):
         super().__init__()
         self.temperature = temperature
 
-    def forward(self, features, backbone_features=None, labels=None):
+    def forward(self, a,b, backbone_features=None, labels=None):
         # backbone_features and labels are unused
-        batch_size = features.size(0) // 2
+        # batch_size = features.size(0) // 2
 
-        a = features[:batch_size]
-        b = features[batch_size:]
+        # a = features[:batch_size]
+        # b = features[batch_size:]
 
         a = F.normalize(a)
         b = F.normalize(b)
@@ -23,10 +24,10 @@ class InfoNCECosine(nn.Module):
         cos_ab = a @ b.T / self.temperature
 
         # mean of the diagonal
-        tempered_alignment = cos_ab.trace() / batch_size
+        tempered_alignment = cos_ab.trace() / a.size(0)
 
         # exclude self inner product
-        self_mask = torch.eye(batch_size, dtype=bool, device=cos_aa.device)
+        self_mask = torch.eye(a.size(0), dtype=bool, device=cos_aa.device)
         cos_aa.masked_fill_(self_mask, float("-inf"))
         cos_bb.masked_fill_(self_mask, float("-inf"))
         logsumexp_1 = torch.hstack((cos_ab.T, cos_bb)).logsumexp(dim=1).mean()
@@ -83,6 +84,7 @@ class InfoNCET(InfoNCEGaussian):
         self.dof = dof
 
     def forward(self, a, b):
+        """Modified by me from Nik's original code"""
         # batch_size = features.size(0) // 2
 
         # features = features.float()

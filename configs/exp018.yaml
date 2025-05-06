@@ -1,0 +1,23 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+data_loader:
+  batch_size : 512
+
+training:
+  n_epochs : 250
+  eval_every_epochs: 50
+  save_interm_embeds : True
+  lr : !!float 1e-2
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+
+tsne_obj:
+  k : 10
+  symmetrize : True
+  batch_size : 512
+  n_epochs : 500
+  lr: !!float 0.001
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+
