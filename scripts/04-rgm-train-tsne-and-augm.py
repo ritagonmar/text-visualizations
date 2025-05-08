@@ -53,9 +53,7 @@ eval_rep = (
 # Add git commit hash to config
 config["log"] = dict()
 config["log"]["git_commit"] = get_git_commit_hash()
-config["log"]["start_time_2"] = datetime.now().strftime(
-    "%Y-%m-%d %H:%M:%S"
-)  # TODO: change after run
+config["log"]["start_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # create saving path
 exp_name = Path(exp_config_name).stem
@@ -64,10 +62,19 @@ saving_path = (
     / Path(config["model"]["model_name"].lower())
     / Path(config["data_loader"]["dataset"].lower())
     / Path("training_tsne_and_augm")
-    / Path(
-        "exp018_20250502"
-    )  # Path(exp_name + "_" + datetime.now().strftime("%Y%m%d")) #TODO: change after run
+    / Path(exp_name + "_" + datetime.now().strftime("%Y%m%d"))
 )
+if "hyperparameter_sweep" in config.keys():
+    exp_number = exp_name.split("__")[0]  #'exp007'
+    param_values = exp_name.split("__")[1]  #'lr-0.001_scale-0.2'
+    saving_path = (
+        variables_path
+        / Path(config["model"]["model_name"].lower())
+        / Path(config["data_loader"]["dataset"].lower())
+        / Path("training_tsne_and_augm")
+        / Path(exp_number + "_" + datetime.now().strftime("%Y%m%d"))
+        / Path(param_values)
+    )
 saving_path.mkdir(parents=True, exist_ok=True)
 
 # save enhanced config file to results directory
@@ -212,6 +219,9 @@ start = time.time()
 
 
 ### CRASHED EXPERIMENT -- DELETE AFTER
+# fix random seeds
+fix_all_seeds()
+
 ## set up model
 print("Model: ", config["model"]["model_name"])
 
@@ -221,17 +231,20 @@ print("Running on device: {}".format(device))
 tokenizer = AutoTokenizer.from_pretrained(config["model"]["model_path"])
 
 ## load trained model
+tsne_model_path = Path(config["tsne_obj"]["model_path"])
+
 try:
     # Try to load with saved pooler
     loaded_model = ModelProjector.load_model(
-        filepath=saving_path / "trained_model_after_tsne.pt", device=device
+        filepath=variables_path / tsne_model_path / "trained_model_after_tsne.pt",
+        device=device,
     )
 except ValueError:
     # If pooler couldn't be loaded, provide it explicitly
     # from text_visualizations.train_stuff import mean_pool
 
     loaded_model = ModelProjector.load_model(
-        filepath=saving_path / "trained_model_after_tsne.pt",
+        filepath=variables_path / tsne_model_path / "trained_model_after_tsne.pt",
         pooler=pooler,
         device=device,
     )

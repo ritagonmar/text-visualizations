@@ -8,7 +8,9 @@ import copy
 from text_visualizations.config_helpers import get_nested_value, load_config
 
 
-def run_hyperparameter_sweep(exp_config_name, configs_dir_path):
+def run_hyperparameter_sweep(
+    exp_config_name, configs_dir_path, variables_path, hyper_sweep_file="train_model.py"
+):
     """
     Run hyperparameter sweep based on a single config file that includes sweep parameters.
 
@@ -71,7 +73,6 @@ def run_hyperparameter_sweep(exp_config_name, configs_dir_path):
         # Create descriptive name for this run
         param_str = "_".join(f"{k.split('.')[-1]}-{v}" for k, v in params.items())
 
-        # temp_config_name = f"{config_name}_run{i+1}_{param_str}.yaml"
         temp_config_name = f"{exp_name}__{param_str}.yaml"
         temp_config_path = configs_dir / temp_config_name
 
@@ -82,7 +83,7 @@ def run_hyperparameter_sweep(exp_config_name, configs_dir_path):
         print(f"Running experiment {i+1}/{len(param_combinations)}: {param_str}")
 
         # Run the training script as a subprocess
-        cmd = ["python", "train_model.py", "--config", str(temp_config_path)]
+        cmd = ["python", hyper_sweep_file, "--config", str(temp_config_path)]
         process = subprocess.run(cmd, capture_output=False, text=True)
 
         # Store results
@@ -111,6 +112,7 @@ def run_hyperparameter_sweep(exp_config_name, configs_dir_path):
         / Path(full_config["data_loader"]["dataset"].lower())
         / Path(exp_name + "_" + datetime.now().strftime("%Y%m%d"))
     )
+    saving_path.mkdir(parents=True, exist_ok=True)
     summary_path = (
         saving_path / f"sweep_summary_{datetime.now().strftime('%Y%m%d')}.yaml"
     )
@@ -123,6 +125,7 @@ def run_hyperparameter_sweep(exp_config_name, configs_dir_path):
                 "experiment_results": [
                     {"params": r["params"], "success": r["success"]} for r in results
                 ],
+                "hyper_sweep_file": hyper_sweep_file,
             },
             f,
         )
@@ -146,5 +149,7 @@ if __name__ == "__main__":
     exp_config_name = args.config  # "../configs/sweep_config.yaml"
 
     # run
-    results = run_hyperparameter_sweep(exp_config_name, configs_dir_path=configs_path)
+    results = run_hyperparameter_sweep(
+        exp_config_name, configs_dir_path=configs_path, variables_path=variables_path
+    )
     # print(results)

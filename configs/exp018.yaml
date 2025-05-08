@@ -20,4 +20,5 @@ tsne_obj:
   lr: !!float 0.001
   scale : !!float 1
   loss_class : "infonce.InfoNCECauchy"
+  model_path : "sbert/iclr/training_tsne_and_augm/exp018_20250502"
 

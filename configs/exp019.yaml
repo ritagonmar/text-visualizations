@@ -1,0 +1,39 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+data_loader:
+  batch_size : 256
+
+training:
+  n_epochs : 5
+  eval_every_epochs: 5
+  save_interm_embeds : True
+  lr :
+  - !!float 5e-3
+  - !!float 2e-3
+  - !!float 1e-3
+  - !!float 5e-4
+  - !!float 2e-4
+  - !!float 1e-4
+  - !!float 5e-5
+  - !!float 2e-5
+  - !!float 1e-5
+  - !!float 5e-6
+  - !!float 2e-6
+  - !!float 1e-6
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+  
+hyperparameter_sweep:
+- training.lr
+
+tsne_obj:
+  k : 10
+  symmetrize : True
+  batch_size : 512
+  n_epochs : 500
+  lr: !!float 0.001
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+  model_path : "sbert/iclr/training_tsne_and_augm/exp018_20250502"
+
