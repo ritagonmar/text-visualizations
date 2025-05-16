@@ -491,3 +491,20 @@ def plot_squared_brackets(ax, x, y, text, width, height):
     ax.plot([x - width / 2, x + width / 2], [y, y], lw=lw, color=color)
     ax.plot([x - width / 2, x - width / 2], [y, y + height], lw=lw, color=color)
     ax.plot([x + width / 2, x + width / 2], [y, y + height], lw=lw, color=color)
+
+
+def discrete_cmap(cmap_name, N):
+    """
+    Create a discrete colormap from a continuous colormap.
+
+    Parameters:
+        cmap_name (str or Colormap): Name of the base colormap or a Colormap instance.
+        N (int): Number of discrete colors.
+
+    Returns:
+        ListedColormap: Discrete colormap with N colors.
+    """
+    base = plt.get_cmap(cmap_name)
+    color_list = base(np.linspace(0, 1, N))
+    # return ListedColormap(color_list, name=f"{base.name}_{N}")
+    return color_list

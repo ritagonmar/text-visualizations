@@ -32,6 +32,7 @@ config = load_config(exp_config_name, configs_dir_path=configs_path)
 pooler = get_function(config["model"]["pooler"])
 eval_function = get_function(config["training"]["eval_function"])
 loss_class = get_function(config["training"]["loss_class"])
+data_augm = get_function(config["data_loader"]["augmentation"])
 
 # get eval_rep
 eval_rep = (
@@ -113,7 +114,7 @@ wrapped_model = ModelProjectorWrapper(model, tokenizer)
 
 ## set up dataloader
 # data
-training_dataset = MultOverlappingSentencesPairDataset(
+training_dataset = data_augm(
     iclr.abstract,  # ENH: change this with the dataset importing class
     tokenizer,
     device,

@@ -9,7 +9,11 @@ from text_visualizations.config_helpers import get_nested_value, load_config
 
 
 def run_hyperparameter_sweep(
-    exp_config_name, configs_dir_path, variables_path, hyper_sweep_file="train_model.py"
+    exp_config_name,
+    configs_dir_path,
+    variables_path,
+    hyper_sweep_file="train_model.py",
+    additional_saving_path=None,
 ):
     """
     Run hyperparameter sweep based on a single config file that includes sweep parameters.
@@ -106,12 +110,21 @@ def run_hyperparameter_sweep(
         time.sleep(2)
 
     # Create summary report
-    saving_path = (
-        variables_path
-        / Path(full_config["model"]["model_name"].lower())
-        / Path(full_config["data_loader"]["dataset"].lower())
-        / Path(exp_name + "_" + datetime.now().strftime("%Y%m%d"))
-    )
+    if additional_saving_path is not None:
+        saving_path = (
+            variables_path
+            / Path(full_config["model"]["model_name"].lower())
+            / Path(full_config["data_loader"]["dataset"].lower())
+            / Path(additional_saving_path)
+            / Path(exp_name + "_" + datetime.now().strftime("%Y%m%d"))
+        )
+    else:
+        saving_path = (
+            variables_path
+            / Path(full_config["model"]["model_name"].lower())
+            / Path(full_config["data_loader"]["dataset"].lower())
+            / Path(exp_name + "_" + datetime.now().strftime("%Y%m%d"))
+        )
     saving_path.mkdir(parents=True, exist_ok=True)
     summary_path = (
         saving_path / f"sweep_summary_{datetime.now().strftime('%Y%m%d')}.yaml"

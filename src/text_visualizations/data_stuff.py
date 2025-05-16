@@ -2,6 +2,7 @@ import itertools
 import re
 import numpy as np
 import torch
+import pandas as pd
 
 
 class SentencePairDataset(torch.utils.data.Dataset):
@@ -571,6 +572,10 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
         self.device = device
         self.cut_off = cut_off
 
+        self.mask_token_id = (
+            tokenizer.mask_token_id if hasattr(tokenizer, "mask_token_id") else 103
+        )
+
         if tokenizer_kwargs is None:
             tokenizer_kwargs = dict(
                 max_length=512,
@@ -597,7 +602,8 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
         special_tokens_mask = self.abstracts_tok["special_tokens_mask"][idx]
 
         masked_token_value = (
-            torch.ones(abstract.size(), dtype=int, device=self.device) * 103
+            torch.ones(abstract.size(), dtype=int, device=self.device)
+            * self.mask_token_id
         )
         real_abstract_length = int((special_tokens_mask == 0).sum())
 
@@ -652,6 +658,10 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
         self.n_cons_sntcs = n_cons_sntcs
         self.device = device
         self.fraction_masked = fraction_masked
+
+        self.mask_token_id = (
+            tokenizer.mask_token_id if hasattr(tokenizer, "mask_token_id") else 103
+        )
 
         # sentence map
         self.sentences_map = []
@@ -744,7 +754,8 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
 
         # sentences 1
         masked_token_value_1 = (
-            torch.ones(sentences_1.size(), dtype=int, device=self.device) * 103
+            torch.ones(sentences_1.size(), dtype=int, device=self.device)
+            * self.mask_token_id
         )
         real_sentences_length_1 = int((special_tokens_mask_1 == 0).sum())
 
@@ -765,7 +776,8 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
 
         # sentences 2
         masked_token_value_2 = (
-            torch.ones(sentences_2.size(), dtype=int, device=self.device) * 103
+            torch.ones(sentences_2.size(), dtype=int, device=self.device)
+            * self.mask_token_id
         )
         real_sentences_length_2 = int((special_tokens_mask_2 == 0).sum())
 
@@ -837,3 +849,219 @@ class NeighborAbstracts(torch.utils.data.Dataset):
         neigh = self.tok_output.input_ids[nidx]
         neigh_amask = self.tok_output.attention_mask[nidx]
         return (item, item_amask), (neigh, neigh_amask)
+
+
+class AbstractAndCropDataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        abstracts,
+        tokenizer,
+        device,
+        n_cons_sntcs=2,
+        tokenizer_kwargs=None,
+        seed=42,
+    ):
+        # actually a list of tokens
+        self.abstracts = abstracts
+        self.rng = np.random.default_rng(seed)
+        self.n_cons_sntcs = n_cons_sntcs
+
+        # sentence map
+        self.sentences_map = []
+        for i, sentences in enumerate(
+            abstracts.map(lambda a: a.split("."))
+        ):  # loop through abstracts
+            for j in range(
+                len(sentences) - (self.n_cons_sntcs - 1)
+            ):  # loop through sentences inside abstract
+                if (len(sentences[j]) >= 100) & (
+                    len(sentences[j]) <= 250
+                ):  # length conditions
+                    cons_sentences_pack = ""
+                    cons_sentence_counts = 0
+                    for k in range(
+                        len(sentences) - j
+                    ):  # loop through sentences to add them
+                        if (len(sentences[j + k]) >= 100) & (
+                            len(sentences[j + k]) <= 250
+                        ):  # length conditions
+                            cons_sentences_pack += sentences[j + k].strip() + ". "
+                            cons_sentence_counts += 1
+
+                        if (
+                            cons_sentence_counts == self.n_cons_sntcs
+                        ):  # check if we have already enough sentences
+                            self.sentences_map.append((cons_sentences_pack, i))
+                            break
+
+        if tokenizer_kwargs is None:
+            tokenizer_kwargs = dict(
+                max_length=512,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+
+        self.sentences_tok = tokenizer(
+            [x for x, _ in self.sentences_map], **tokenizer_kwargs
+        ).to(device)
+
+        # we group the flat sentences by the original abstract they
+        # come from.  Then we can check whether we have enough
+        # sentences and append the abstracts with at least two
+        # sentences to our list.
+        sentences_and_toks = zip(
+            self.sentences_map,
+            self.sentences_tok["input_ids"],
+            self.sentences_tok["attention_mask"],
+        )
+        self.abs_sentences = []
+        self.abs_toks = []
+        self.abs_amsk = []
+        self.selection_abstracts = []
+        for key, group in itertools.groupby(
+            sentences_and_toks,
+            key=lambda kvtoksetc: kvtoksetc[0][1],
+        ):
+            grp = list(group)
+            if len(grp) < 2:
+                continue  # not enough sentences
+            else:
+                self.abs_sentences.append([x[0] for x in grp])
+                self.abs_toks.append([x[1] for x in grp])
+                self.abs_amsk.append([x[2] for x in grp])
+                self.selection_abstracts.append(self.abstracts[key])
+
+        # we now have `self.abs_toks`, which is a list of lists,
+        # where the first list is the abstracts and the second is the
+        # token representation of the sentences within the given
+        # abstract.
+
+        self.selection_abs_tokenized = tokenizer(
+            self.selection_abstracts, **tokenizer_kwargs
+        ).to(device)
+
+    def __getitem__(self, idx):
+        abstract = self.abs_toks[idx]
+        amask = self.abs_amsk[idx]
+        full_abstract = self.selection_abs_tokenized["input_ids"][idx]
+        full_abstract_amask = self.selection_abs_tokenized["attention_mask"][idx]
+        i1 = self.rng.choice(len(abstract), size=1, replace=False)[0]
+        return (abstract[i1], amask[i1]), (full_abstract, full_abstract_amask)
+
+    def __len__(self):
+        return len(self.abs_sentences)
+
+
+class MaskedSentenceAbstractDataset(torch.utils.data.Dataset):
+    """CONSECUTIVE NUMBER OF SENTENCES MASKED IN THE ABSTRACT"""
+
+    def __init__(
+        self,
+        abstracts: pd.Series,
+        tokenizer,
+        device,
+        tokenizer_kwargs=None,
+        n_cons_sntcs=2,
+        truncate=False,
+        cut_off=1500,
+        seed=42,
+    ):
+        # Ensure abstracts is a pandas Series
+        if not isinstance(abstracts, pd.Series):
+            abstracts = pd.Series(abstracts)
+
+        # Store for later use
+        self.tokenizer = tokenizer
+
+        # Get period token ID
+        self.period_token_id = tokenizer(".", add_special_tokens=False)["input_ids"][0]
+        self.mask_token_id = (
+            tokenizer.mask_token_id if hasattr(tokenizer, "mask_token_id") else 103
+        )
+
+        # Truncate if specified
+        if truncate:
+            abstracts = abstracts.str[:cut_off]
+
+        self.abstracts = abstracts
+        self.rng = np.random.default_rng(seed)
+        self.consecutive_sentences_masked = n_cons_sntcs
+        self.device = device
+
+        # Prepare tokenizer kwargs
+        if tokenizer_kwargs is None:
+            tokenizer_kwargs = dict(
+                max_length=512,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+                # return_special_tokens_mask=True,
+            )
+
+        # Tokenize all abstracts upfront
+        self.tokenized_abstracts = tokenizer(abstracts.tolist(), **tokenizer_kwargs).to(
+            device
+        )
+
+        # Find and store period indices for each abstract
+        self.period_indices = []
+        for i in range(len(self.tokenized_abstracts["input_ids"])):
+            input_ids = self.tokenized_abstracts["input_ids"][i]
+            # Find all indices of period tokens
+            periods = (
+                (input_ids == self.period_token_id).nonzero(as_tuple=True)[0].tolist()
+            )
+            self.period_indices.append(periods)
+
+    def __getitem__(self, idx):
+        # Get tokenized abstract and its metadata
+        input_ids = self.tokenized_abstracts["input_ids"][idx].clone()
+        attention_mask = self.tokenized_abstracts["attention_mask"][idx]
+        # special_tokens_mask = self.tokenized_abstracts["special_tokens_mask"][idx]
+
+        # Get period indices for this abstract
+        periods = self.period_indices[idx]
+
+        # Add start and end bounds (start after CLS token and before last token)
+        sentence_boundaries = [0] + periods
+
+        # Create two different masked versions
+        abstracts_masked = []
+        for _ in range(2):
+            # Clone the input ids to avoid modifying the original
+            masked_input_ids = input_ids.clone()
+
+            # If we have enough sentences to mask
+            if (
+                len(sentence_boundaries) > self.consecutive_sentences_masked
+            ):  # len(periods)??
+                # Choose a random starting point for consecutive sentences
+                max_start_idx = (
+                    len(sentence_boundaries) - self.consecutive_sentences_masked
+                )
+                start_idx = self.rng.integers(0, max_start_idx)
+
+                # Define the start and end tokens to mask
+                start_token = (
+                    sentence_boundaries[start_idx] + 1
+                )  # Start after the period (or 0 for first sentence)
+                end_token = sentence_boundaries[
+                    start_idx + self.consecutive_sentences_masked
+                ]  # End at the period
+
+                # # Apply masking between start_token and end_token # Q?: not sure if this is necessary
+                # for i in range(start_token, end_token + 1):
+                #     # Only mask non-special tokens
+                #     if special_tokens_mask[i] == 0:
+                #         masked_input_ids[i] = self.mask_token_id
+                masked_input_ids[start_token : end_token + 1] = (
+                    self.mask_token_id
+                )  # my version
+
+            abstracts_masked.append((masked_input_ids, attention_mask))
+
+        return abstracts_masked[0], abstracts_masked[1]
+
+    def __len__(self):
+        return len(self.abstracts)

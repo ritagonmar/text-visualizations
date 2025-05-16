@@ -42,7 +42,8 @@ pooler = get_function(config["model"]["pooler"])
 eval_function = get_function(config["training"]["eval_function"])
 loss_class = get_function(config["training"]["loss_class"])
 loss_class_tsne = get_function(config["tsne_obj"]["loss_class"])
-
+data_augm = get_function(config["data_loader"]["augmentation"])
+print(data_augm)
 # get eval_rep
 eval_rep = (
     pooler.sent_rep
@@ -255,7 +256,7 @@ wrapped_model = ModelProjectorWrapper(loaded_model, tokenizer)
 ### AUGMENTATIONS -------------------------------------------------------
 ## set up dataloader
 # data
-training_dataset = MultOverlappingSentencesPairDataset(
+training_dataset = data_augm(
     iclr.abstract,  # ENH: change this with the dataset importing class
     tokenizer,
     device,
@@ -270,7 +271,8 @@ training_loader = torch.utils.data.DataLoader(
     shuffle=True,
     generator=gen,
 )
-print(f"Training with augmentations for {config["training"]["n_epochs"]} epochs")
+
+# print(f"Training with augmentations for {config["training"]["n_epochs"]} epochs")
 
 # logger
 logger = MyTrainingLogger(saving_path=saving_path)

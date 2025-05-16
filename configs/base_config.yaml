@@ -9,6 +9,7 @@ model:
 
 
 data_loader:
+  augmentation: "data_stuff.MultOverlappingSentencesPairDataset"
   dataset : "ICLR" # ENH: not being used
   batch_size : 64
   n_cons_sntcs : 2

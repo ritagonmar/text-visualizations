@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from text_visualizations.plotting import plot_tsne_colors
+from text_visualizations.scalebars import add_scalebar_frac
 
 
 def load_results_in_subdirs(sweep_summary, variables_path, saving_path):
@@ -78,6 +79,7 @@ def plot_2d_embeddings(
                 ha="left",
                 size=7,
             )
+            add_scalebar_frac(ax)
             if save_figs:
                 fig.savefig(
                     figures_path / f"embedding_{exp_name}_{dir_name[:-1]}_v1.png"

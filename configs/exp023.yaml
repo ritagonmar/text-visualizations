@@ -1,0 +1,29 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+data_loader:
+  augmentation: "data_stuff.AbstractAndCropDataset"
+  batch_size : 256
+
+
+training:
+  n_epochs : 250
+  eval_every_epochs: 50
+  save_interm_embeds : True
+  lr : !!float 1e-4
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+ 
+
+tsne_obj:
+  k : 10
+  symmetrize : True
+  batch_size : 512
+  n_epochs : 500
+  lr: !!float 0.001
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+  model_path : "sbert/iclr/training_tsne_and_augm/exp018_20250502"
+
+# let run
+# python3 04-... --config ../configs/exp023.yaml
