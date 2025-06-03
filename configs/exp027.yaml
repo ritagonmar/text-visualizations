@@ -1,0 +1,20 @@
+model:
+  hidden_dims : [1536, 768, 192]
+
+data_loader:
+  augmentation: "data_stuff.MaskedSentenceAbstractDataset"
+  batch_size : 256
+
+
+training:
+  n_epochs : 250
+  eval_every_epochs: 50
+  save_interm_embeds : True
+  lr : !!float 2e-3 
+  scale : !!float 1
+  loss_class : "infonce.InfoNCECauchy"
+ 
+
+
+# let run
+# python3 train_model.py --config ../configs/exp027.yaml

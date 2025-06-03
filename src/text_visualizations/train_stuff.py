@@ -134,7 +134,7 @@ def train_loop(
 
     # setup warmup for first ~10% of steps
     total_steps = len(loader) * n_epochs
-    warmup_steps = int(0.1 * len(loader))
+    warmup_steps = int(0.1 * len(loader)) #TODO: try with total_steps and lr 1e-3
     scheduler = get_linear_schedule_with_warmup(
         optim,
         num_warmup_steps=warmup_steps,
